@@ -9,7 +9,7 @@ namespace CryptoDemo.AesDemo
         private const int BLOCKSIZE = 128; //bits
         private const int KEYSIZE = 256; //bits
         private const int IVLENGTH = 16; //bytes.
-        private byte[] EncryptBytes(byte[] inputBytes, byte[] encryptionKey)
+        public byte[] EncryptBytes(byte[] inputBytes, byte[] encryptionKey)
         {
             // output
             byte[] encryptedBytes;
@@ -42,7 +42,7 @@ namespace CryptoDemo.AesDemo
             return encryptedBytes;
         }
 
-        private byte[] DecryptBytes(byte[] encryptedBytes, byte[] encryptionKey)
+        public byte[] DecryptBytes(byte[] encryptedBytes, byte[] encryptionKey)
         {
             byte[] decryptedbytes = null;
             // read the IV from the front of the data.
