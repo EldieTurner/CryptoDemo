@@ -28,7 +28,7 @@ namespace CryptoDemo.AesDemo
                 {
                     using (var cryptoStream = new CryptoStream(outputMemoryStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
                     {
-                        //we right the IV to the output stream first.
+                        //we write the IV to the output stream first.
                         outputMemoryStream.Write(aes.IV, 0, aes.IV.Length);
 
                         using (var inputMemoryStream = new MemoryStream(inputBytes))
