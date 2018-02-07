@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Security.Cryptography;
 using System.IO;
+using System;
 
 namespace CryptoDemo.AesDemo
 {
@@ -11,7 +12,8 @@ namespace CryptoDemo.AesDemo
         private const int IVLENGTH = 16; //bytes.
         public byte[] EncryptBytes(byte[] inputBytes, byte[] encryptionKey)
         {
-            // output
+            VerifyInputs(inputBytes, encryptionKey);
+            
             byte[] encryptedBytes;
             using (var aes = Aes.Create())
             {
@@ -44,6 +46,8 @@ namespace CryptoDemo.AesDemo
 
         public byte[] DecryptBytes(byte[] encryptedBytes, byte[] encryptionKey)
         {
+            VerifyInputs(encryptedBytes, encryptionKey);
+
             byte[] decryptedbytes = null;
             // read the IV from the front of the data.
             byte[] iv = encryptedBytes.Take(IVLENGTH).ToArray();
@@ -75,6 +79,13 @@ namespace CryptoDemo.AesDemo
             }
 
         return decryptedbytes;
+        }
+
+        private void VerifyInputs(byte[] data, byte[] encryptionKey)
+        {
+            if (data == null) throw new ArgumentException($"{nameof(data)} cannot be null");
+            if (!data.Any()) throw new ArgumentException($"{nameof(data)} cannot be empty");
+            if (encryptionKey.Length * 8 != KEYSIZE) throw new ArgumentException($"{nameof(encryptionKey)} must be {KEYSIZE} bits");
         }
     }
 }
