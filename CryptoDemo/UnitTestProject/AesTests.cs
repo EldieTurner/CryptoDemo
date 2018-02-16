@@ -29,6 +29,26 @@ namespace UnitTestProject
         }
 
         [TestMethod]
+        public void PerformanceTest()
+        {
+            for (var i = 0; i < 500000; i++)
+            {
+                //Arrange
+                var input = $"This is some unencrypted text that we are going to encrypt then decrypt to make sure it comes out correct. {i}";
+                //Convert from string to byte array
+                var byteInput = Encoding.UTF8.GetBytes(input);
+                var aes = new AesSimple();
+                //Act
+                var encryptedString = aes.EncryptBytes(byteInput, EncryptionKey);
+                var byteOutput = aes.DecryptBytes(encryptedString, EncryptionKey);
+                //Convert from byte array to string
+                var output = Encoding.UTF8.GetString(byteOutput, 0, byteOutput.Length);
+                //Assert
+                Assert.AreEqual(input, output);
+            }
+        }
+
+        [TestMethod]
         public void NullData_Test()
         {
             //Arrange

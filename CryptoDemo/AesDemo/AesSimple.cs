@@ -49,6 +49,7 @@ namespace CryptoDemo.AesDemo
             VerifyInputs(encryptedBytes, encryptionKey);
             var iv = new byte[IVLENGTH];
             byte[] decryptedbytes = null;
+            //pull the IV off the front of the file.
             Array.Copy(encryptedBytes, 0, iv, 0, IVLENGTH);
 
             using (var aes = Aes.Create())
@@ -74,24 +75,7 @@ namespace CryptoDemo.AesDemo
                     }
                     decryptedbytes = outputMemorStream.ToArray();
                 }                
-                return decryptedbytes;
-
-
-                //using (var inputMemoryStream = new MemoryStream(inputstream))
-                //{
-                //    using (var outputMemorStream = new MemoryStream())
-                //    {
-                //        using (CryptoStream cryptoStream = new CryptoStream(inputMemoryStream, aes.CreateDecryptor(), CryptoStreamMode.Read))
-                //        {
-                //            int data;
-                //            while ((data = cryptoStream.ReadByte()) != -1)
-                //                outputMemorStream.WriteByte((byte)data);
-                //        }
-                //        decryptedbytes = outputMemorStream.ToArray();
-                //    }
-                //}
             }
-
         return decryptedbytes;
         }
 

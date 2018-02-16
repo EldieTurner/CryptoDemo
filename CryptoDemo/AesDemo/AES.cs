@@ -77,87 +77,59 @@ namespace CryptoDemo.AesDemo
 
         private byte[] EncryptBytes(byte[] inputBytes, byte[] encryptionKey)
         {
-            if (!inputBytes.Any())
-                throw new ArgumentNullException(nameof(inputBytes));
-            if ((encryptionKey.Length.ToBits()) != (int)KeySize)
-                throw new ArgumentException($"{nameof(encryptionKey)} length must equal {(int)KeySize} bits");
+            VerifyInputs(inputBytes, encryptionKey);
 
             byte[] cipherTextBytes;
-            try
+
+            using (var aes = Aes.Create())
             {
-                using (var AES = Aes.Create())
+                aes.Padding = PaddingMode.PKCS7;
+                aes.Mode = CipherMode.CBC;
+                aes.KeySize = (int)KeySize;
+                aes.BlockSize = BLOCKSIZE;
+                aes.Key = encryptionKey;
+                aes.GenerateIV();
+
+                using (var outputMemoryStream = new MemoryStream())
                 {
-                    AES.Padding = PaddingMode.PKCS7;
-                    AES.Mode = CipherMode.CBC;
-                    AES.KeySize = (int)KeySize;
-                    AES.BlockSize = BLOCKSIZE;
-                    AES.Key = encryptionKey;
-                    AES.GenerateIV();
-
-                    using (var outputms = new MemoryStream())
+                    outputMemoryStream.Write(aes.IV, 0, IVLENGTH);
+                    using (var cryptoStream = new CryptoStream(outputMemoryStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
                     {
-                        using (var cs = new CryptoStream(outputms, AES.CreateEncryptor(), CryptoStreamMode.Write))
-                        {
-                            outputms.Write(AES.IV, 0, AES.IV.Length);
-
-                            using (var inputms = new MemoryStream(inputBytes))
-                            {
-                                int data;
-                                while ((data = inputms.ReadByte()) != -1)
-                                    cs.WriteByte((byte)data);
-                            }
-                        }
-                        cipherTextBytes = outputms.ToArray();
+                        cryptoStream.Write(inputBytes, 0, inputBytes.Length);
+                        cryptoStream.FlushFinalBlock();
                     }
+                    cipherTextBytes = outputMemoryStream.ToArray();
                 }
-            }
-            catch
-            {
-                throw;
             }
             return cipherTextBytes;
         }
 
         private byte[] DecryptBytes(byte[] encryptedBytes, byte[] encryptionKey)
         {
-            if (!encryptedBytes.Any())
-                throw new ArgumentNullException(nameof(encryptedBytes));
-            if ((encryptionKey.Length.ToBits()) != (int)KeySize)
-                throw new ArgumentException($"{nameof(encryptionKey)} length must equal {(int)KeySize} bits");
+            VerifyInputs(encryptedBytes, encryptionKey);
 
             byte[] decryptedbytes = null;
-            try
-            {
-                byte[] iv = encryptedBytes.Take(IVLENGTH).ToArray();
-                byte[] inputstream = encryptedBytes.Skip(iv.Length).Take(encryptedBytes.Length - IVLENGTH).ToArray();
+            byte[] iv = new byte[IVLENGTH];
+            Array.Copy(encryptedBytes, 0, iv, 0, IVLENGTH);
 
-                using (var AES = Aes.Create())
+            using (var aes = Aes.Create())
+            {
+                aes.Padding = PaddingMode.PKCS7;
+                aes.Mode = CipherMode.CBC;
+                aes.KeySize = (int)KeySize;
+                aes.BlockSize = BLOCKSIZE;
+                aes.Key = encryptionKey;
+                aes.IV = iv;
+
+                using (var outputMemorStream = new MemoryStream())
                 {
-                    AES.Padding = PaddingMode.PKCS7;
-                    AES.Mode = CipherMode.CBC;
-                    AES.KeySize = (int)KeySize;
-                    AES.BlockSize = BLOCKSIZE;
-                    AES.Key = encryptionKey;
-                    AES.IV = iv;
-
-                    using (var inputms = new MemoryStream(inputstream))
+                    using (var CryptoStream = new CryptoStream(outputMemorStream, aes.CreateDecryptor(), CryptoStreamMode.Write))
                     {
-                        using (var outputms = new MemoryStream())
-                        {
-                            using (CryptoStream cs = new CryptoStream(inputms, AES.CreateDecryptor(), CryptoStreamMode.Read))
-                            {
-                                int data;
-                                while ((data = cs.ReadByte()) != -1)
-                                    outputms.WriteByte((byte)data);
-                            }
-                            decryptedbytes = outputms.ToArray();
-                        }
+                        CryptoStream.Write(encryptedBytes, IVLENGTH, (encryptedBytes.Length - IVLENGTH));
+                        CryptoStream.FlushFinalBlock();
                     }
+                    decryptedbytes = outputMemorStream.ToArray();
                 }
-            }
-            catch
-            {
-                throw;
             }
             return decryptedbytes;
         }
@@ -170,24 +142,21 @@ namespace CryptoDemo.AesDemo
 
         public void EncryptFile(byte[] encryptionKey, string inputfile, string encryptedfile)
         {
-            if (!File.Exists(inputfile))
-                throw new FileNotFoundException(inputfile);
-            if ((encryptionKey.Length.ToBits()) != (int)KeySize)
-                throw new ArgumentException($"{nameof(encryptionKey)} length must equal {(int)KeySize} bits");
+            VerifyInputs(inputfile, encryptionKey);
 
-            using (var AES = Aes.Create())
+            using (var aes = Aes.Create())
             {
-                AES.Padding = PaddingMode.PKCS7;
-                AES.Mode = CipherMode.CBC;
-                AES.KeySize = (int)KeySize;
-                AES.BlockSize = BLOCKSIZE;
-                AES.Key = encryptionKey;
-                AES.GenerateIV();
+                aes.Padding = PaddingMode.PKCS7;
+                aes.Mode = CipherMode.CBC;
+                aes.KeySize = (int)KeySize;
+                aes.BlockSize = BLOCKSIZE;
+                aes.Key = encryptionKey;
+                aes.GenerateIV();
                 using (var outputfs = new FileStream(encryptedfile, FileMode.Create))
                 {
-                    using (var cs = new CryptoStream(outputfs, AES.CreateEncryptor(), CryptoStreamMode.Write))
+                    using (var cs = new CryptoStream(outputfs, aes.CreateEncryptor(), CryptoStreamMode.Write))
                     {
-                        outputfs.Write(AES.IV, 0, AES.IV.Length);
+                        outputfs.Write(aes.IV, 0, aes.IV.Length);
 
                         using (var inputfs = new FileStream(inputfile, FileMode.Open))
                         {
@@ -202,10 +171,7 @@ namespace CryptoDemo.AesDemo
 
         public void DecryptFile(byte[] encryptionKey, string encryptedFile, string outputFile)
         {
-            if (!File.Exists(encryptedFile))
-                throw new FileNotFoundException(encryptedFile);
-            if ((encryptionKey.Length.ToBits()) != (int)KeySize)
-                throw new ArgumentException($"{nameof(encryptionKey)} length must equal {(int)KeySize} bits");
+            VerifyInputs(encryptedFile, encryptionKey);
 
             using (var inputfs = new FileStream(encryptedFile, FileMode.Open))
             {
@@ -233,12 +199,34 @@ namespace CryptoDemo.AesDemo
                 }
             }
         }
+
+        private void VerifyInputs(byte[] data, byte[] encryptionKey)
+        {
+            if (data == null) throw new ArgumentException($"{nameof(data)} cannot be null");
+            if (!data.Any()) throw new ArgumentException($"{nameof(data)} cannot be empty");
+            if (encryptionKey.Length.ToBits() != (int)KeySize) throw new ArgumentException($"{nameof(encryptionKey)} must be {(int)KeySize} bits");
+        }
+
+        private void VerifyInputs(string inputfile, byte[] encryptionKey)
+        {
+            if (!File.Exists(inputfile))
+                throw new FileNotFoundException(inputfile);
+            if ((encryptionKey.Length.ToBits()) != (int)KeySize)
+                throw new ArgumentException($"{nameof(encryptionKey)} length must equal {(int)KeySize} bits");
+
+        }
     }
 
     public static class ExtensionMethods
     {
         public static int ToBits(this int bytes)
             => bytes * 8;
+        public static int ToBytes(this int bits)
+        {
+            if (bits % 8 != 0)
+                throw new ArgumentException($"{bits} is not divisible by 8");
+            return bits / 8;
+        }
     }
 }
 
