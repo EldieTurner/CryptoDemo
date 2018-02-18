@@ -1,87 +1,55 @@
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using CryptoDemo.AesDemo;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Linq;
-using System.Text;
+using System.IO;
+using UnitTestProject.Properties;
 
 namespace UnitTestProject
 {
     [TestClass]
     public class AesTests
     {
-        private readonly byte[] EncryptionKey = Encoding.UTF8.GetBytes("passwordpasswordpasswordpassword");
+        private const string EncryptionKey = "passwordwith32bits12345678912345";
 
         [TestMethod]
-        public void HappyPath_Test()
+        public void Test_StringEncryption()
         {
             //Arrange
-            var input = "This is some unencrypted text that we are going to encrypt then decrypt to make sure it comes out correct.";
-                //Convert from string to byte array
-            var byteInput = Encoding.UTF8.GetBytes(input);
-            var aes = new AesSimple();
+            var data = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+            var aes = new AES256();
             //Act
-            var encryptedString = aes.EncryptBytes(byteInput, EncryptionKey);
-            var byteOutput = aes.DecryptBytes(encryptedString, EncryptionKey);
-                //Convert from byte array to string
-            var output = Encoding.UTF8.GetString(byteOutput, 0, byteOutput.Length);
+            var encryptedString = aes.EncryptString(data, EncryptionKey);
+            var result = aes.DecryptString(encryptedString, EncryptionKey);
             //Assert
-            Assert.AreEqual(input, output);
+            Assert.AreEqual(data, result);
         }
 
         [TestMethod]
-        public void PerformanceTest()
-        {
-            for (var i = 0; i < 500000; i++)
-            {
-                //Arrange
-                var input = $"This is some unencrypted text that we are going to encrypt then decrypt to make sure it comes out correct. {i}";
-                //Convert from string to byte array
-                var byteInput = Encoding.UTF8.GetBytes(input);
-                var aes = new AesSimple();
-                //Act
-                var encryptedString = aes.EncryptBytes(byteInput, EncryptionKey);
-                var byteOutput = aes.DecryptBytes(encryptedString, EncryptionKey);
-                //Convert from byte array to string
-                var output = Encoding.UTF8.GetString(byteOutput, 0, byteOutput.Length);
-                //Assert
-                Assert.AreEqual(input, output);
-            }
-        }
-
-        [TestMethod]
-        public void NullData_Test()
+        public void EncryptFile_Test()
         {
             //Arrange
-            byte[] byteInput = null;
-            var aes = new AesSimple();
-            //Act 
-            //Assert
-            Assert.ThrowsException<ArgumentException>(() =>aes.EncryptBytes(byteInput, EncryptionKey), "data cannot be null");
-        }
+            var tempPath = Path.GetTempPath();
+            if (!Directory.Exists(tempPath)) Directory.CreateDirectory(tempPath);
+            var path = $"{tempPath}Security.txt";
+            var originalData = Resources.ResourceManager.GetString("Security");
+            File.WriteAllText(path, originalData);
 
-        [TestMethod]
-        public void EmptyData_Test()
-        {
-            //Arrange
-            byte[] byteInput = new Byte[0];
-            var aes = new AesSimple();
-            //Act 
-            //Assert
-            Assert.ThrowsException<ArgumentException>(() => aes.EncryptBytes(byteInput, EncryptionKey), "data cannot be empty");
-        }
+            var encryptedPath = $"{tempPath}Security.encrypt";
+            var decryptPath = $"{tempPath}security2.txt";
+            var aes = new AES256();
 
-        [TestMethod]
-        public void IncorrectKeySize_Test()
-        {
-            //Arrange
-            var input = "This is some unencrypted text that we are going to encrypt then decrypt to make sure it comes out correct.";
-            //Convert from string to byte array
-            var byteInput = Encoding.UTF8.GetBytes(input);
-            var shortkey = new byte[24];
-            var aes = new AesSimple();
             //Act
+            aes.EncryptFile(EncryptionKey, path, encryptedPath);
+            aes.DecryptFile(EncryptionKey, encryptedPath, decryptPath);
+
+            var inputFile = File.ReadAllText(path);
+            var outputFile = File.ReadAllText(decryptPath);
+
             //Assert
-            Assert.ThrowsException<ArgumentException>(() => aes.EncryptBytes(byteInput, shortkey), "encryptionKey must be 256 bits");
+            Assert.AreEqual(inputFile, outputFile);
+
+            File.Delete(path);
+            File.Delete(encryptedPath);
+            File.Delete(decryptPath);
         }
     }
 }

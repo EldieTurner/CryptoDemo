@@ -140,9 +140,9 @@ namespace CryptoDemo.AesDemo
         public void DecryptFile(string encryptionKey, string encryptedFile, string outputFile)
             => DecryptFile(Encoding.UTF8.GetBytes(encryptionKey), encryptedFile, outputFile);
 
-        public void EncryptFile(byte[] encryptionKey, string inputfile, string encryptedfile)
+        public void EncryptFile(byte[] encryptionKey, string inputFilePath, string encryptedFilePath)
         {
-            VerifyInputs(inputfile, encryptionKey);
+            VerifyInputs(inputFilePath, encryptionKey);
 
             using (var aes = Aes.Create())
             {
@@ -152,48 +152,45 @@ namespace CryptoDemo.AesDemo
                 aes.BlockSize = BLOCKSIZE;
                 aes.Key = encryptionKey;
                 aes.GenerateIV();
-                using (var outputfs = new FileStream(encryptedfile, FileMode.Create))
-                {
-                    using (var cs = new CryptoStream(outputfs, aes.CreateEncryptor(), CryptoStreamMode.Write))
-                    {
-                        outputfs.Write(aes.IV, 0, aes.IV.Length);
 
-                        using (var inputfs = new FileStream(inputfile, FileMode.Open))
+                using (FileStream inputFileStream = File.Open(inputFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    using (FileStream outputFileStream = File.Open(encryptedFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        outputFileStream.Write(aes.IV, 0, IVLENGTH);
+                        using (CryptoStream cryptoStream = new CryptoStream(outputFileStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
                         {
-                            int data;
-                            while ((data = inputfs.ReadByte()) != -1)
-                                cs.WriteByte((byte)data);
+                            inputFileStream.CopyTo(cryptoStream);
                         }
                     }
                 }
             }
         }
 
-        public void DecryptFile(byte[] encryptionKey, string encryptedFile, string outputFile)
+        public void DecryptFile(byte[] encryptionKey, string encryptedFilePath, string outputFilePath)
         {
-            VerifyInputs(encryptedFile, encryptionKey);
+            VerifyInputs(encryptedFilePath, encryptionKey);
 
-            using (var inputfs = new FileStream(encryptedFile, FileMode.Open))
+            using (var aes = Aes.Create())
             {
-                var iv = new byte[IVLENGTH];
-                inputfs.Read(iv, 0, IVLENGTH);
-                inputfs.Position = iv.Length;
+                aes.Padding = PaddingMode.PKCS7;
+                aes.Mode = CipherMode.CBC;
+                aes.KeySize = (int)KeySize;
+                aes.BlockSize = BLOCKSIZE;
+                aes.Key = encryptionKey;
 
-                using (var AES = Aes.Create())
+                using (var inputFileStream = new FileStream(encryptedFilePath, FileMode.Open))
                 {
-                    AES.Padding = PaddingMode.PKCS7;
-                    AES.Mode = CipherMode.CBC;
-                    AES.KeySize = (int)KeySize;
-                    AES.BlockSize = BLOCKSIZE;
-                    AES.Key = encryptionKey;
-                    AES.IV = iv;
-                    using (var outputfs = new FileStream(outputFile, FileMode.Create))
+
+                    var iv = new byte[IVLENGTH];
+                    inputFileStream.Read(iv, 0, IVLENGTH);
+                    inputFileStream.Position = iv.Length;
+                    aes.IV = iv;
+                    using (FileStream outputFileStream = File.Open(outputFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
                     {
-                        using (CryptoStream cs = new CryptoStream(inputfs, AES.CreateDecryptor(), CryptoStreamMode.Read))
+                        using (CryptoStream cryptoStream = new CryptoStream(outputFileStream, aes.CreateDecryptor(), CryptoStreamMode.Write))
                         {
-                            int data;
-                            while ((data = cs.ReadByte()) != -1)
-                                outputfs.WriteByte((byte)data);
+                            inputFileStream.CopyTo(cryptoStream);
                         }
                     }
                 }
