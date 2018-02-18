@@ -17,26 +17,26 @@ namespace CryptoDemo.AesDemo
             byte[] encryptedBytes;
             using (var aes = Aes.Create())
             {
+                //The following settings are actually the default for AES
+                //I'm hard coding them so you are aware of what they should
+                //be, if you see someone using aes with different settings
+                //there should be a very good reason.
                 aes.Padding = PaddingMode.PKCS7;
                 aes.Mode = CipherMode.CBC;
-                aes.KeySize = KEYSIZE;
                 aes.BlockSize = BLOCKSIZE;
-                aes.Key = encryptionKey;
                 aes.GenerateIV(); //let AES generate an IV
-
+                //
+                aes.KeySize = KEYSIZE;
+                aes.Key = encryptionKey;
+                
                 using (var outputMemoryStream = new MemoryStream())
                 {
+                    //write the IV to the beginning of the file.
+                    outputMemoryStream.Write(aes.IV, 0, IVLENGTH);
                     using (var cryptoStream = new CryptoStream(outputMemoryStream, aes.CreateEncryptor(), CryptoStreamMode.Write))
                     {
-                        //we write the IV to the output stream first.
-                        outputMemoryStream.Write(aes.IV, 0, aes.IV.Length);
-
-                        using (var inputMemoryStream = new MemoryStream(inputBytes))
-                        {
-                            int data;
-                            while ((data = inputMemoryStream.ReadByte()) != -1)
-                                cryptoStream.WriteByte((byte)data);
-                        }
+                        cryptoStream.Write(inputBytes, 0, inputBytes.Length);
+                        cryptoStream.FlushFinalBlock();
                     }
                     encryptedBytes = outputMemoryStream.ToArray();
                 }
@@ -47,37 +47,35 @@ namespace CryptoDemo.AesDemo
         public byte[] DecryptBytes(byte[] encryptedBytes, byte[] encryptionKey)
         {
             VerifyInputs(encryptedBytes, encryptionKey);
-
+            var iv = new byte[IVLENGTH];
             byte[] decryptedbytes = null;
-            // read the IV from the front of the data.
-            byte[] iv = encryptedBytes.Take(IVLENGTH).ToArray();
-            // the rest of the data is the encrypted stuff
-            byte[] inputstream = encryptedBytes.Skip(iv.Length).Take(encryptedBytes.Length - IVLENGTH).ToArray();
+            //pull the IV off the front of the file.
+            Array.Copy(encryptedBytes, 0, iv, 0, IVLENGTH);
 
             using (var aes = Aes.Create())
             {
+                //The following settings are actually the default for AES
+                //I'm hard coding them so you are aware of what they should
+                //be, if you see someone using aes with different settings
+                //there should be a very good reason.
                 aes.Padding = PaddingMode.PKCS7;
                 aes.Mode = CipherMode.CBC;
-                aes.KeySize = KEYSIZE;
                 aes.BlockSize = BLOCKSIZE;
+                //
+                aes.KeySize = KEYSIZE;
                 aes.Key = encryptionKey;
                 aes.IV = iv;
 
-                using (var inputMemoryStream = new MemoryStream(inputstream))
+                using (var outputMemorStream = new MemoryStream())
                 {
-                    using (var outputMemorStream = new MemoryStream())
+                    using (var CryptoStream = new CryptoStream(outputMemorStream, aes.CreateDecryptor(), CryptoStreamMode.Write))
                     {
-                        using (CryptoStream cryptoStream = new CryptoStream(inputMemoryStream, aes.CreateDecryptor(), CryptoStreamMode.Read))
-                        {
-                            int data;
-                            while ((data = cryptoStream.ReadByte()) != -1)
-                                outputMemorStream.WriteByte((byte)data);
-                        }
-                        decryptedbytes = outputMemorStream.ToArray();
+                        CryptoStream.Write(encryptedBytes, IVLENGTH, (encryptedBytes.Length - IVLENGTH));
+                        CryptoStream.FlushFinalBlock();
                     }
-                }
+                    decryptedbytes = outputMemorStream.ToArray();
+                }                
             }
-
         return decryptedbytes;
         }
 
