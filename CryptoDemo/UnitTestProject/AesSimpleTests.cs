@@ -11,7 +11,7 @@ namespace UnitTestProject
         private readonly byte[] EncryptionKey = Encoding.UTF8.GetBytes("passwordpasswordpasswordpassword");
 
         [TestMethod]
-        public void HappyPath_Test()
+        public void AesSimple_HappyPath_Test()
         {
             //Arrange
             var input = "This is some unencrypted text that we are going to encrypt then decrypt to make sure it comes out correct.";
@@ -28,7 +28,7 @@ namespace UnitTestProject
         }
 
         [TestMethod]
-        public void NullData_Test()
+        public void AesSimple_NullData_Test()
         {
             //Arrange
             byte[] byteInput = null;
@@ -39,7 +39,7 @@ namespace UnitTestProject
         }
 
         [TestMethod]
-        public void EmptyData_Test()
+        public void AesSimple_EmptyData_Test()
         {
             //Arrange
             byte[] byteInput = new Byte[0];
@@ -50,7 +50,7 @@ namespace UnitTestProject
         }
 
         [TestMethod]
-        public void IncorrectKeySize_Test()
+        public void AesSimple_IncorrectKeySize_Test()
         {
             //Arrange
             var input = "This is some unencrypted text that we are going to encrypt then decrypt to make sure it comes out correct.";

@@ -11,7 +11,7 @@ namespace UnitTestProject
         private const string EncryptionKey = "passwordwith32bits12345678912345";
 
         [TestMethod]
-        public void Test_StringEncryption()
+        public void Aes_StringEncryption_Test()
         {
             //Arrange
             var data = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
@@ -24,7 +24,7 @@ namespace UnitTestProject
         }
 
         [TestMethod]
-        public void EncryptFile_Test()
+        public void Aes_EncryptFile_Test()
         {
             //Arrange
             var tempPath = Path.GetTempPath();
