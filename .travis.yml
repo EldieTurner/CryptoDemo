@@ -1,6 +1,6 @@
 language: csharp
-solution: CryptoDemo\CryptoDemo.sln
 mono: none
 dotnet: 2.0.0
 script:
- - dotnet restore
+  - dotnet restore
+  - dotnet build ./CryptoDemo/
